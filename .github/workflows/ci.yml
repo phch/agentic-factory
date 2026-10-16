@@ -58,4 +58,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Agent branches may not touch protected paths
-        run: scripts/check_protected_paths.sh "origin/${{ github.base_ref }}" "${{ github.head_ref }}"
+        run: scripts/check_protected_paths.sh "origin/${BASE_REF}" "${HEAD_REF}"
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
