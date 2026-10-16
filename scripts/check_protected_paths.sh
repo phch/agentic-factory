@@ -12,7 +12,9 @@ if [[ "$branch" != factory/* ]]; then
 fi
 
 protected='^(\.github/|\.claude/|scripts/|evals/|CODEOWNERS|Makefile|pyproject\.toml|requirements-dev\.txt)'
-bad=$(git diff --name-only "${base}...HEAD" | grep -E "$protected" || true)
+# Fail closed: if the diff itself errors (bad ref, shallow clone), the check fails.
+changed=$(git diff --name-only "${base}...HEAD") || { echo "git diff failed; refusing to pass"; exit 2; }
+bad=$(grep -E "$protected" <<< "$changed" || true)
 
 if [[ -n "$bad" ]]; then
   echo "Agent branch modified protected paths:"
