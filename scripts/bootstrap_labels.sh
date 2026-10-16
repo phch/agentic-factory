@@ -6,7 +6,7 @@ repo_args=()
 [[ -n "${1:-}" ]] && repo_args=(--repo "$1")
 
 while IFS='|' read -r name color desc; do
-  gh label create "$name" --color "$color" --description "$desc" --force "${repo_args[@]}"
+  gh label create "$name" --color "$color" --description "$desc" --force ${repo_args[@]+"${repo_args[@]}"}
 done <<'LABELS'
 factory:prd|5319e7|Start the PRD stage from this issue
 factory:implement|5319e7|Start single-shot implementation from a PRD
