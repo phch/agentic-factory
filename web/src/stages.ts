@@ -7,6 +7,7 @@ export interface Issue {
   html_url: string;
   state: "open" | "closed";
   labels: { name: string }[];
+  pull_request?: unknown; // present when the "issue" is really a PR
 }
 
 /** Which board column an issue belongs to, derived from its factory:* labels. */
@@ -30,3 +31,13 @@ export function groupByStage(issues: Issue[]): Record<Stage, Issue[]> {
   }
   return out;
 }
+
+export const STAGE_STYLE: Record<Stage, { title: string; dot: string }> = {
+  blocked: { title: "Blocked", dot: "bg-slate-400" },
+  design: { title: "Design", dot: "bg-violet-500" },
+  tests: { title: "Tests", dot: "bg-sky-500" },
+  build: { title: "Build", dot: "bg-amber-500" },
+  validate: { title: "Validate", dot: "bg-indigo-500" },
+  done: { title: "Done", dot: "bg-emerald-500" },
+  "needs-human": { title: "Needs human", dot: "bg-rose-500" },
+};

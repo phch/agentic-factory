@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupByStage, stageOf, type Issue } from "./board";
+import { groupByStage, stageOf, type Issue } from "./stages";
 
 const mk = (labels: string[], state: "open" | "closed" = "open", n = 1): Issue => ({
   number: n, title: "t", html_url: "u", state, labels: labels.map((name) => ({ name })),

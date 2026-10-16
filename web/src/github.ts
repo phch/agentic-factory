@@ -1,4 +1,4 @@
-import type { Issue } from "./board";
+import type { Issue } from "./stages";
 
 const API = "https://api.github.com";
 
@@ -18,8 +18,14 @@ async function gh<T>(cfg: Config, path: string, init: RequestInit = {}): Promise
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
 
-export const listTasks = (cfg: Config) =>
-  gh<Issue[]>(cfg, `/repos/${cfg.repo}/issues?labels=factory:task&state=all&per_page=100`);
+const onlyIssues = (items: Issue[]) => items.filter((i) => !i.pull_request);
+
+export const listTasks = async (cfg: Config) =>
+  onlyIssues(await gh<Issue[]>(cfg, `/repos/${cfg.repo}/issues?labels=factory:task&state=all&per_page=100`));
+
+/** Recent PRD requests, so the UI shows something before tasks exist. */
+export const listPrds = async (cfg: Config) =>
+  onlyIssues(await gh<Issue[]>(cfg, `/repos/${cfg.repo}/issues?labels=factory:prd&state=all&per_page=10`));
 
 /** PRD intake: a maintainer-created issue labelled factory:prd starts the /prd stage. */
 export const submitPrd = (cfg: Config, title: string, body: string) =>

@@ -1,8 +1,11 @@
-import DOMPurify from "dompurify";
-import { marked } from "marked";
-import { useCallback, useEffect, useState } from "react";
-import { STAGES, groupByStage, type Issue } from "./board";
-import { getPaused, listTasks, setPaused, submitPrd, type Config } from "./github";
+import { useState } from "react";
+import { Board, type StatusInfo } from "./Board";
+import { Controls } from "./Controls";
+import type { Config } from "./github";
+import { SubmitPrd } from "./SubmitPrd";
+import { timeAgo } from "./time";
+import { Button, Card, input } from "./ui";
+import { useNow } from "./usePolling";
 
 // The PAT lives in sessionStorage only: it is gone when the tab closes.
 const load = (): Config => ({
@@ -10,9 +13,13 @@ const load = (): Config => ({
   repo: localStorage.getItem("factory.repo") ?? "",
 });
 
+const TABS = ["board", "submit", "controls"] as const;
+type Tab = (typeof TABS)[number];
+
 export function App() {
   const [cfg, setCfg] = useState<Config>(load);
-  const [tab, setTab] = useState<"board" | "submit" | "controls">("board");
+  const [tab, setTab] = useState<Tab>("board");
+  const [status, setStatus] = useState<StatusInfo | null>(null);
   const ready = cfg.token !== "" && cfg.repo.includes("/");
 
   const save = (c: Config) => {
@@ -22,95 +29,62 @@ export function App() {
   };
 
   return (
-    <main style={{ fontFamily: "system-ui", padding: 16 }}>
-      <h1>Agentic Factory</h1>
-      <Settings cfg={cfg} onSave={save} />
-      {ready && (
-        <>
-          <nav>
-            {(["board", "submit", "controls"] as const).map((t) => (
-              <button key={t} onClick={() => setTab(t)} disabled={tab === t}>{t}</button>
+    <div className="mx-auto max-w-[1600px] px-4 py-6">
+      <header className="mb-6 flex flex-wrap items-center gap-3">
+        <h1 className="text-xl font-bold tracking-tight">Agentic Factory</h1>
+        {ready && (
+          <nav className="ml-4 flex gap-1 rounded-lg bg-slate-200/70 p-1 dark:bg-slate-800/70">
+            {TABS.map((t) => (
+              <button key={t} onClick={() => setTab(t)}
+                className={`rounded-md px-3 py-1 text-sm capitalize transition ${tab === t ? "bg-white shadow-sm dark:bg-slate-950" : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"}`}>
+                {t}
+              </button>
             ))}
           </nav>
-          {tab === "board" && <Board cfg={cfg} />}
+        )}
+        {ready && tab === "board" && status && <LiveStatus s={status} />}
+        {ready && (
+          <Button variant="ghost" className="ml-auto" onClick={() => save({ token: "", repo: cfg.repo })}>
+            Disconnect
+          </Button>
+        )}
+      </header>
+
+      {!ready ? <Connect cfg={cfg} onSave={save} /> : (
+        <>
+          {tab === "board" && <Board cfg={cfg} onStatus={setStatus} />}
           {tab === "submit" && <SubmitPrd cfg={cfg} />}
           {tab === "controls" && <Controls cfg={cfg} />}
         </>
       )}
-    </main>
+    </div>
   );
 }
 
-function Settings({ cfg, onSave }: { cfg: Config; onSave: (c: Config) => void }) {
+function LiveStatus({ s }: { s: StatusInfo }) {
+  const now = useNow();
+  const bad = s.error !== "";
+  return (
+    <div className="flex items-center gap-2 text-xs text-slate-500" title={s.error}>
+      <span className={`h-2 w-2 rounded-full ${bad ? "bg-rose-500" : s.loading ? "animate-pulse bg-amber-500" : "bg-emerald-500"}`} />
+      {bad ? "Error, retrying…" : s.updatedAt ? `Live · updated ${timeAgo(s.updatedAt, now)}` : "Connecting…"}
+      <button className="underline hover:text-slate-800 dark:hover:text-slate-200" onClick={s.refresh}>Refresh</button>
+    </div>
+  );
+}
+
+function Connect({ cfg, onSave }: { cfg: Config; onSave: (c: Config) => void }) {
   const [draft, setDraft] = useState(cfg);
   return (
-    <details open={!cfg.token}>
-      <summary>Connection</summary>
-      <p>
-        Use a fine-grained token scoped to this one repository (Issues, Actions variables: read/write).
-        It is kept in this tab only and sent only to api.github.com.
+    <Card className="max-w-lg space-y-3">
+      <h2 className="text-lg font-semibold">Connect to your repo</h2>
+      <p className="text-sm text-slate-600 dark:text-slate-400">
+        Use a fine-grained token scoped to this one repository (Issues and Variables: read/write). It
+        stays in this tab only and is sent only to api.github.com.
       </p>
-      <input placeholder="owner/repo" value={draft.repo} onChange={(e) => setDraft({ ...draft, repo: e.target.value })} />
-      <input type="password" placeholder="token" value={draft.token} onChange={(e) => setDraft({ ...draft, token: e.target.value })} />
-      <button onClick={() => onSave(draft)}>Save</button>
-    </details>
-  );
-}
-
-function Board({ cfg }: { cfg: Config }) {
-  const [issues, setIssues] = useState<Issue[]>([]);
-  const [error, setError] = useState("");
-  const refresh = useCallback(() => listTasks(cfg).then(setIssues).catch((e: Error) => setError(e.message)), [cfg]);
-  useEffect(() => {
-    void refresh();
-    const t = setInterval(() => void refresh(), 30_000);
-    return () => clearInterval(t);
-  }, [refresh]);
-  const groups = groupByStage(issues);
-  return (
-    <>
-      {error && <p role="alert">{error}</p>}
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${STAGES.length}, 1fr)`, gap: 8 }}>
-        {STAGES.map((s) => (
-          <section key={s}>
-            <h3>{s} ({groups[s].length})</h3>
-            {groups[s].map((i) => (
-              // Titles render as text nodes, never as HTML.
-              <p key={i.number}><a href={i.html_url} target="_blank" rel="noreferrer">#{i.number}</a> {i.title}</p>
-            ))}
-          </section>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function SubmitPrd({ cfg }: { cfg: Config }) {
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [msg, setMsg] = useState("");
-  const html = DOMPurify.sanitize(marked.parse(body, { async: false }));
-  const submit = () =>
-    submitPrd(cfg, title, body).then((i) => setMsg(`Created #${i.number}`)).catch((e: Error) => setMsg(e.message));
-  return (
-    <>
-      <input placeholder="Feature title" value={title} onChange={(e) => setTitle(e.target.value)} />
-      <textarea rows={12} style={{ width: "100%" }} placeholder="Describe the feature or paste a PRD (markdown)" value={body} onChange={(e) => setBody(e.target.value)} />
-      <button disabled={!title || !body} onClick={submit}>Submit</button>
-      <p>{msg}</p>
-      <div dangerouslySetInnerHTML={{ __html: html }} />
-    </>
-  );
-}
-
-function Controls({ cfg }: { cfg: Config }) {
-  const [paused, setP] = useState<boolean | null>(null);
-  useEffect(() => { void getPaused(cfg).then(setP); }, [cfg]);
-  if (paused === null) return <p>Loading…</p>;
-  return (
-    <p>
-      Factory is <strong>{paused ? "PAUSED" : "running"}</strong>{" "}
-      <button onClick={() => setPaused(cfg, !paused).then(() => setP(!paused))}>{paused ? "Resume" : "Pause"}</button>
-    </p>
+      <input className={input} placeholder="owner/repo" value={draft.repo} onChange={(e) => setDraft({ ...draft, repo: e.target.value.trim() })} />
+      <input className={input} type="password" placeholder="Fine-grained token" value={draft.token} onChange={(e) => setDraft({ ...draft, token: e.target.value.trim() })} />
+      <Button disabled={!draft.token || !draft.repo.includes("/")} onClick={() => onSave(draft)}>Connect</Button>
+    </Card>
   );
 }
