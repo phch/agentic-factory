@@ -9,6 +9,7 @@ Run after any change to .claude/ prompts or agents, and compare pass rates.
 
 Env:
   CLAUDE_BIN             claude executable (default: claude)
+  EVAL_MODEL             model id (default: claude-sonnet-5-5, same as the workflows)
   EVAL_MAX_TURNS         per-case turn cap (default: 30)
   EVAL_MAX_BUDGET_USD    optional per-case spend cap passed to claude
 """
@@ -49,6 +50,8 @@ def run_case(case: Path) -> dict[str, object]:
             os.environ.get("CLAUDE_BIN", "claude"),
             "-p",
             "/implement docs/prds/001-eval.md",
+            "--model",
+            os.environ.get("EVAL_MODEL", "claude-sonnet-5-5"),
             "--max-turns",
             os.environ.get("EVAL_MAX_TURNS", "30"),
             "--permission-mode",

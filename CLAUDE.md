@@ -50,3 +50,4 @@ Setup and flow: `docs/setup.md`.
 ## Kill switch and budgets
 - Repo variable `FACTORY_PAUSED=true` stops all agent workflows.
 - `FACTORY_MAX_RUNS_PER_DAY` (default 20) caps daily pipeline runs.
+- Agents in GitHub Actions use `claude-sonnet-5-5`; override with repo variable `FACTORY_MODEL`.

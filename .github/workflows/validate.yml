@@ -63,11 +63,11 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: |
-            Run /validate-tests for the task in PR #${{ steps.pr.outputs.number }}. Post your
-            findings as a PR comment whose LAST line is exactly `VERDICT: PASS` or `VERDICT: FAIL`.
-            If FAIL, add a line before it: `RETRY: tests` if the tests are inadequate, else `RETRY: build`.
+          show_full_output: true
+          prompt: /validate-tests
           claude_args: >-
+            --model ${{ vars.FACTORY_MODEL || 'claude-sonnet-5-5' }}
+            --append-system-prompt "You are validating the task in PR #${{ steps.pr.outputs.number }} (see gh pr diff). Post your findings as a PR comment using gh pr comment whose LAST line is exactly VERDICT: PASS or VERDICT: FAIL. If FAIL, add a line before it: RETRY: tests if the tests are inadequate, otherwise RETRY: build."
             --max-turns 10
             --allowedTools "Read,Glob,Grep,Bash(make test),Bash(make coverage),Bash(gh pr comment:*),Bash(gh pr diff:*)"
         env:

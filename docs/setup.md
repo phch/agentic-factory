@@ -15,7 +15,7 @@
    touching `.github/`, `.claude/`, `scripts/`, `evals/`, `web/` or build config needs you.
 6. **Pages:** Settings -> Pages -> Source: GitHub Actions.
 7. **Variables (optional):** `FACTORY_PAUSED` (kill switch), `FACTORY_MAX_RUNS_PER_DAY` (default 20),
-   `FACTORY_AUTO_MERGE_PRD=true` to auto-merge PRD PRs too (fully hands-off; default is that you
+   `FACTORY_MODEL` (agent model, default `claude-sonnet-5-5`), `FACTORY_AUTO_MERGE_PRD=true` to auto-merge PRD PRs too (fully hands-off; default is that you
    review and merge each PRD).
 8. **Python deps** use uv: `uv sync` creates `.venv`; `make check` runs everything via `uv run`.
 

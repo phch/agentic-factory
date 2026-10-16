@@ -29,4 +29,4 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: --max-turns 25
+          claude_args: --model ${{ vars.FACTORY_MODEL || 'claude-sonnet-5-5' }} --max-turns 25

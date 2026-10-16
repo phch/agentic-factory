@@ -86,6 +86,7 @@ jobs:
             tests, lowering coverage, or disabling lint rules. Run `make check` until green.
             Commit with a message starting exactly `factory-autofix:` and push.
           claude_args: >-
+            --model ${{ vars.FACTORY_MODEL || 'claude-sonnet-5-5' }}
             --max-turns 20
             --allowedTools "Read,Glob,Grep,Edit(src/**),Write(src/**),Edit(tests/**),Write(tests/**),Bash(make:*),Bash(git:*),Bash(gh run view:*)"
         env:
