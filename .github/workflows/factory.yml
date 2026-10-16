@@ -103,6 +103,9 @@ jobs:
             exit 1
           fi
           scripts/check_protected_paths.sh origin/main "$BRANCH"
+          # claude-code-action rewrites git credentials; authenticate this push explicitly.
+          git config --local --unset-all http.https://github.com/.extraheader || true
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
           git push origin "$BRANCH"
           title=$(gh issue view "$ISSUE" --repo "$REPO" --json title --jq .title)
           url=$(gh pr create --repo "$REPO" --head "$BRANCH" --base main \
