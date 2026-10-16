@@ -15,6 +15,12 @@ permissions: {}
 jobs:
   design:
     if: github.event.label.name == 'factory:stage:design'
+    permissions:
+      actions: read
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
     uses: ./.github/workflows/stage.yml
     secrets: inherit
     with:
@@ -27,6 +33,12 @@ jobs:
 
   tests:
     if: github.event.label.name == 'factory:stage:tests'
+    permissions:
+      actions: read
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
     uses: ./.github/workflows/stage.yml
     secrets: inherit
     with:
@@ -38,6 +50,12 @@ jobs:
 
   build:
     if: github.event.label.name == 'factory:stage:build'
+    permissions:
+      actions: read
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
     uses: ./.github/workflows/stage.yml
     secrets: inherit
     with:
