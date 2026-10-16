@@ -16,6 +16,7 @@ factory:stage:design|1d76db|Design stage
 factory:stage:tests|1d76db|Test-authoring stage
 factory:stage:build|1d76db|Implementation stage
 factory:stage:validate|1d76db|Validation stage
+factory:stage:merging|1d76db|Validated; waiting for auto-merge
 factory:done|0e8a16|Validated and complete
 factory:needs-human|d93f0b|Pipeline gave up; human needed
 factory:retry-1|fbca04|First retry used

@@ -20,9 +20,11 @@ jobs:
     permissions:
       contents: read
       actions: read
+      pull-requests: read
     outputs:
       allowed: ${{ steps.gate.outputs.allowed }}
       prd: ${{ steps.prd.outputs.path }}
+      source_issue: ${{ steps.src.outputs.issue }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,6 +39,16 @@ jobs:
             echo "Expected exactly one new PRD, got: '$added'"; echo "path=" >> "$GITHUB_OUTPUT"; exit 0
           fi
           echo "path=$added" >> "$GITHUB_OUTPUT"
+      - id: src
+        # The PRD PR body carries "Source-Issue: #N", written by the workflow (not the agent).
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          body=$(gh api "repos/${REPO}/commits/${SHA}/pulls" --jq '.[0].body // ""')
+          n=$(grep -oE 'Source-Issue: #[0-9]+' <<< "$body" | grep -oE '[0-9]+' | head -1 || true)
+          echo "issue=$n" >> "$GITHUB_OUTPUT"
       - id: gate
         run: scripts/gate.sh
         env:
@@ -86,7 +98,8 @@ jobs:
         with:
           name: tasks
       - name: Validate and create issues
-        run: python3 -I scripts/create_tasks.py tasks.json --repo "$REPO"
+        run: python3 -I scripts/create_tasks.py tasks.json --repo "$REPO" --source-issue "$SOURCE_ISSUE"
         env:
+          SOURCE_ISSUE: ${{ needs.gate.outputs.source_issue }}
           GH_TOKEN: ${{ secrets.FACTORY_PUSH_TOKEN }}
           REPO: ${{ github.repository }}

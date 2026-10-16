@@ -72,22 +72,34 @@ jobs:
             --allowedTools "Read,Glob,Grep,Bash(make test),Bash(make coverage),Bash(gh pr comment:*),Bash(gh pr diff:*)"
         env:
           GH_TOKEN: ${{ github.token }}
-      - name: Read verdict and advance
+      - name: Read verdict, advance, and auto-merge
         env:
           GH_TOKEN: ${{ secrets.FACTORY_PUSH_TOKEN }}
           PR: ${{ steps.pr.outputs.number }}
           ISSUE: ${{ github.event.issue.number }}
         run: |
-          # Only comments by the Actions bot count; humans/agents elsewhere cannot forge a verdict.
+          # Only bot comments whose LAST line is a verdict count, so the review job's comment
+          # or any other chatter cannot be mistaken for it. Take the most recent such comment.
           last=$(gh api "repos/${REPO}/issues/${PR}/comments" --paginate \
-            --jq '[.[] | select(.user.login=="github-actions[bot]") | .body] | last')
+            --jq '[.[] | select(.user.login=="github-actions[bot]")
+                   | select(.body | test("\\nVERDICT: (PASS|FAIL)\\s*$")) | .body] | last // ""')
           verdict=$(tail -n1 <<< "$last" | tr -d '\r')
           case "$verdict" in
-            "VERDICT: PASS") scripts/advance.sh "$ISSUE" validate done ;;
+            "VERDICT: PASS")
+              scripts/advance.sh "$ISSUE" validate merging
+              # Auto-merge waits for required checks; plain merge covers repos with none.
+              gh pr merge "$PR" --repo "$REPO" --auto --squash ||
+                gh pr merge "$PR" --repo "$REPO" --squash || {
+                  gh issue edit "$ISSUE" --repo "$REPO" --remove-label factory:stage:merging \
+                    --add-label factory:needs-human
+                  gh issue comment "$ISSUE" --repo "$REPO" \
+                    --body "Validated, but the PR could not be merged automatically. Check repo auto-merge settings."
+                } ;;
             "VERDICT: FAIL")
               if grep -qx 'RETRY: tests' <<< "$last"; then target=tests; else target=build; fi
               scripts/advance.sh "$ISSUE" validate retry "$target" ;;
             *) echo "No verdict found; escalating."
                gh issue edit "$ISSUE" --repo "$REPO" --remove-label factory:stage:validate \
-                 --add-label factory:needs-human ;;
+                 --add-label factory:needs-human
+               gh issue comment "$ISSUE" --repo "$REPO" --body "Validator posted no verdict. A human needs to look." ;;
           esac

@@ -2,7 +2,7 @@
 """Validate the PM agent's tasks.json and create one GitHub issue per task.
 
 Runs in a job that holds issues:write; the agent that produced tasks.json never does.
-Usage: create_tasks.py <tasks.json> --repo OWNER/REPO [--dry-run]
+Usage: create_tasks.py <tasks.json> --repo OWNER/REPO [--source-issue N] [--dry-run]
 Env:   GH_TOKEN (token whose label changes should trigger downstream workflows)
 """
 
@@ -17,17 +17,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from tasks import Task, TaskGraphError, parse_tasks, prd_requirements, topo_order  # noqa: E402
+from tasks import Task, TaskGraphError, parse_tasks, prd_requirements, render_checklist, topo_order  # noqa: E402
 
 
-def body(task: Task, prd: str, issue_of: dict[str, int]) -> str:
+def body(task: Task, prd: str, issue_of: dict[str, int], source: str) -> str:
     deps = "".join(f"Depends on #{issue_of[d]}\n" for d in task.depends_on)
     acceptance = "\n".join(f"- {a}" for a in task.acceptance)
     hints = ", ".join(task.files_hint) or "none"
+    origin = f"Source: #{source}\n" if source else ""
     return (
         f"PRD: `{prd}` (requirements {', '.join(map(str, task.requirements))})\n"
         f"Kind: {task.kind}\nFiles hint: {hints}\n\n"
-        f"## Acceptance\n{acceptance}\n\n{deps}"
+        f"## Acceptance\n{acceptance}\n\n{origin}{deps}"
     )
 
 
@@ -43,6 +44,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("tasks_json")
     ap.add_argument("--repo", required=True)
+    ap.add_argument("--source-issue", default="", help="PRD intake issue to receive the checklist")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -58,17 +60,28 @@ def main() -> int:
         print(f"invalid decomposition: {e}")
         return 1
 
+    source = args.source_issue.lstrip("#")
+    if source and not source.isdigit():
+        print(f"invalid source issue: {source!r}")
+        return 1
     issue_of: dict[str, int] = {}
+    created: list[tuple[int, Task]] = []
     for t in ordered:
         stage = "factory:blocked" if t.depends_on else "factory:stage:design"
         labels = ["factory:task", stage]
-        text = body(t, str(doc["prd"]), issue_of)
+        text = body(t, str(doc["prd"]), issue_of, source)
         if args.dry_run:
             print(f"[dry-run] {t.id} {t.title!r} labels={labels} deps={list(t.depends_on)}")
             issue_of[t.id] = 0
         else:
             issue_of[t.id] = create_issue(args.repo, f"{t.id}: {t.title}", text, labels)
+            created.append((issue_of[t.id], t))
             print(f"created #{issue_of[t.id]} for {t.id}")
+    if source and created:
+        subprocess.run(
+            ["gh", "issue", "comment", source, "--repo", args.repo, "--body-file", "-"],
+            input=render_checklist(created), text=True, check=True,
+        )
     return 0
 
 

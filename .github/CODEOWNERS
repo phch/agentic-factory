@@ -1,8 +1,12 @@
-# Enable "Require review from Code Owners" in branch protection.
-*                @phch
+# Only protected paths need a human review. Agent PRs that touch just src/, tests/, docs/
+# can therefore auto-merge once required checks pass. Do NOT add a catch-all `*` line, and
+# do not own docs/design/ or docs/prds/ paths that agents write (it would block auto-merge).
 /.github/        @phch
 /.claude/        @phch
 /scripts/        @phch
 /evals/          @phch
 /web/            @phch
-/docs/design/    @phch
+/Makefile        @phch
+/pyproject.toml  @phch
+/uv.lock         @phch
+/CLAUDE.md       @phch

@@ -1,4 +1,4 @@
-export const STAGES = ["blocked", "design", "tests", "build", "validate", "done", "needs-human"] as const;
+export const STAGES = ["blocked", "design", "tests", "build", "validate", "merging", "done", "needs-human"] as const;
 export type Stage = (typeof STAGES)[number];
 
 export interface Issue {
@@ -17,7 +17,7 @@ export function stageOf(issue: Issue): Stage | null {
   if (names.has("factory:needs-human")) return "needs-human";
   if (names.has("factory:done") || issue.state === "closed") return "done";
   if (names.has("factory:blocked")) return "blocked";
-  for (const s of ["design", "tests", "build", "validate"] as const) {
+  for (const s of ["design", "tests", "build", "validate", "merging"] as const) {
     if (names.has(`factory:stage:${s}`)) return s;
   }
   return "blocked";
@@ -38,6 +38,7 @@ export const STAGE_STYLE: Record<Stage, { title: string; dot: string }> = {
   tests: { title: "Tests", dot: "bg-sky-500" },
   build: { title: "Build", dot: "bg-amber-500" },
   validate: { title: "Validate", dot: "bg-indigo-500" },
+  merging: { title: "Merging", dot: "bg-teal-500" },
   done: { title: "Done", dot: "bg-emerald-500" },
   "needs-human": { title: "Needs human", dot: "bg-rose-500" },
 };

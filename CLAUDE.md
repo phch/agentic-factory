@@ -40,9 +40,12 @@ GitHub workflow stage.
 `/decompose` (tech-pm) turns a merged PRD into task issues (`scripts/create_tasks.py`, which
 validates the graph in `src/tasks.py`). Each task moves by `factory:stage:<x>` label:
 `design` (designer) -> `tests` (test-author, tests only) -> `build` (implementer, src only) ->
-`validate` (test-validator, ends with `VERDICT: PASS|FAIL`) -> `done`. Failed validation retries
-up to 2 times, then `factory:needs-human`. Tasks with dependencies start as `factory:blocked`.
-Workflows: `decompose.yml`, `pipeline.yml` + `stage.yml`, `validate.yml`. Setup: `docs/setup.md`.
+`validate` (test-validator, ends with `VERDICT: PASS|FAIL`) -> `merging` (auto-merge on green CI) ->
+`done` (set by `merged.yml` after the PR merges; this unblocks dependents). Failed validation
+retries up to 2 times, then `factory:needs-human`. Tasks with dependencies start as
+`factory:blocked`. Every transition is commented on the task issue and the PRD issue.
+Workflows: `decompose.yml`, `pipeline.yml` + `stage.yml`, `validate.yml`, `merged.yml`.
+Setup and flow: `docs/setup.md`.
 
 ## Kill switch and budgets
 - Repo variable `FACTORY_PAUSED=true` stops all agent workflows.

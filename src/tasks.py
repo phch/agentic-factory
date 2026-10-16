@@ -123,3 +123,13 @@ def prd_requirements(text: str) -> set[int]:
         elif in_section and (m := re.match(r"\s*(\d+)[.)]\s", line)):
             nums.add(int(m.group(1)))
     return nums
+
+
+CHECKLIST_MARKER = "<!-- factory-tasks -->"
+
+
+def render_checklist(created: list[tuple[int, Task]]) -> str:
+    """PRD roll-up comment: one unchecked box per created task issue."""
+    lines = [CHECKLIST_MARKER, "Tasks created from this PRD:", ""]
+    lines += [f"- [ ] #{number} {t.id}: {t.title}" for number, t in created]
+    return "\n".join(lines)

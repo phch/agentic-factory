@@ -32,7 +32,7 @@ export function Board({ cfg, onStatus }: { cfg: Config; onStatus: (s: StatusInfo
       <section>
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Tasks ({total})</h2>
         {tasks.data && total === 0 && <p className="text-sm text-slate-500">No tasks yet. They appear once a PRD is merged and decomposed.</p>}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
           {STAGES.map((s) => (
             <div key={s} className="min-w-0 rounded-xl bg-slate-100/70 p-2 dark:bg-slate-900/60">
               <h3 className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">

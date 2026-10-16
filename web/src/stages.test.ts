@@ -9,6 +9,8 @@ describe("stageOf", () => {
   it("ignores non-task issues", () => expect(stageOf(mk(["bug"]))).toBeNull());
   it("maps stage labels", () =>
     expect(stageOf(mk(["factory:task", "factory:stage:build"]))).toBe("build"));
+  it("merging", () =>
+    expect(stageOf(mk(["factory:task", "factory:stage:merging"]))).toBe("merging"));
   it("blocked", () => expect(stageOf(mk(["factory:task", "factory:blocked"]))).toBe("blocked"));
   it("needs-human wins over stage", () =>
     expect(stageOf(mk(["factory:task", "factory:stage:build", "factory:needs-human"]))).toBe("needs-human"));

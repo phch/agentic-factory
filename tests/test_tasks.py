@@ -4,7 +4,14 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from tasks import TaskGraphError, parse_tasks, prd_requirements, topo_order
+from tasks import (
+    CHECKLIST_MARKER,
+    TaskGraphError,
+    parse_tasks,
+    prd_requirements,
+    render_checklist,
+    topo_order,
+)
 
 
 def doc(tasks: list[dict[str, object]]) -> dict[str, object]:
@@ -95,6 +102,15 @@ class TestPrdRequirements(unittest.TestCase):
 
     def test_no_section(self) -> None:
         self.assertEqual(prd_requirements("# P\n1. x\n"), set())
+
+
+class TestChecklist(unittest.TestCase):
+    def test_render(self) -> None:
+        tasks = parse_tasks(doc([task("T1"), task("T2", ["T1"], [2])]), {1, 2})
+        text = render_checklist([(11, tasks[0]), (12, tasks[1])])
+        self.assertTrue(text.startswith(CHECKLIST_MARKER))
+        self.assertIn("- [ ] #11 T1: title T1", text)
+        self.assertIn("- [ ] #12 T2: title T2", text)
 
 
 if __name__ == "__main__":

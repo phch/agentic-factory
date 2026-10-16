@@ -1,0 +1,41 @@
+name: Task merged
+# Closes the loop: when a task PR is merged (by auto-merge after validation), mark the task
+# done, tick the PRD checklist, and unblock dependents so they branch from a main that
+# contains this task's code. A PR closed without merging escalates to a human.
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  finish:
+    if: >-
+      startsWith(github.head_ref, 'factory/task-') &&
+      vars.FACTORY_PAUSED != 'true' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - name: Advance the task
+        env:
+          GH_TOKEN: ${{ secrets.FACTORY_PUSH_TOKEN }}
+          REPO: ${{ github.repository }}
+          MERGED: ${{ github.event.pull_request.merged }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          issue="${HEAD_REF#factory/task-}"
+          [[ "$issue" =~ ^[0-9]+$ ]] || exit 0
+          if [[ "$MERGED" == "true" ]]; then
+            scripts/advance.sh "$issue" merging done
+          else
+            gh issue edit "$issue" --repo "$REPO" --add-label factory:needs-human
+            gh issue comment "$issue" --repo "$REPO" --body "The task PR was closed without merging. A human needs to look."
+          fi
