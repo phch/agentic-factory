@@ -197,7 +197,7 @@ jobs:
           claude_args: >-
             --model ${{ vars.FACTORY_MODEL || 'claude-sonnet-5-5' }}
             --append-system-prompt "Post the verdict as a comment on PR #${{ github.event.pull_request.number }} using gh pr comment."
-            --max-turns 25
+            --max-turns 20
             --allowedTools "Read,Glob,Grep,Bash(make test),Bash(make coverage),Bash(git diff:*),Bash(git log:*),Bash(gh pr diff:*),Bash(gh pr comment:*)"
         env:
           GH_TOKEN: ${{ github.token }}
