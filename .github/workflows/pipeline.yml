@@ -1,0 +1,49 @@
+name: Task pipeline
+# Dispatcher: a `factory:stage:<x>` label on a task issue runs that stage.
+#   design -> tests -> build -> validate -> done        (stages are test-first)
+# Stage workflows are in stage.yml; validation verdicts are handled by validate.yml.
+on:
+  issues:
+    types: [labeled]
+
+concurrency:
+  group: pipeline-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  design:
+    if: github.event.label.name == 'factory:stage:design'
+    uses: ./.github/workflows/stage.yml
+    secrets: inherit
+    with:
+      issue: ${{ github.event.issue.number }}
+      stage: design
+      next: tests
+      command: design
+      needs_python: false
+      allowed_tools: "Read,Glob,Grep,Write(docs/design/**),Bash(git add:*),Bash(git commit:*),Bash(gh issue view:*)"
+
+  tests:
+    if: github.event.label.name == 'factory:stage:tests'
+    uses: ./.github/workflows/stage.yml
+    secrets: inherit
+    with:
+      issue: ${{ github.event.issue.number }}
+      stage: tests
+      next: build
+      command: write-tests
+      allowed_tools: "Read,Glob,Grep,Edit(tests/**),Write(tests/**),Bash(make test),Bash(git add:*),Bash(git commit:*),Bash(gh issue view:*)"
+
+  build:
+    if: github.event.label.name == 'factory:stage:build'
+    uses: ./.github/workflows/stage.yml
+    secrets: inherit
+    with:
+      issue: ${{ github.event.issue.number }}
+      stage: build
+      next: validate
+      command: implement
+      max_turns: "30"
+      allowed_tools: "Read,Glob,Grep,Edit(src/**),Write(src/**),Bash(make:*),Bash(git add:*),Bash(git commit:*),Bash(gh issue view:*)"

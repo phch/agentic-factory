@@ -16,10 +16,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install -r requirements-dev.txt
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
       - run: npm install -g @anthropic-ai/claude-code
       - run: make evals
         env:

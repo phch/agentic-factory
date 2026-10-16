@@ -1,0 +1,93 @@
+name: Task validation
+# Stage 4: the test-validator judges the task PR and posts `VERDICT: PASS|FAIL` as a bot
+# comment. This workflow (not the agent) reads that verdict and moves the task: PASS ->
+# done (closes issue, unblocks dependents); FAIL -> back to `tests` or `build` via retry.
+on:
+  issues:
+    types: [labeled]
+
+concurrency:
+  group: validate-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  gate:
+    if: github.event.label.name == 'factory:stage:validate'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      actions: read
+      issues: read
+    outputs:
+      allowed: ${{ steps.gate.outputs.allowed }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: gate
+        run: scripts/gate.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.event.sender.login }}
+          EVENT_NAME: issues
+          PAUSED: ${{ vars.FACTORY_PAUSED }}
+          MAX_RUNS: ${{ vars.FACTORY_MAX_RUNS_PER_DAY || 20 }}
+          WORKFLOW: validate.yml
+
+  validate:
+    needs: gate
+    if: needs.gate.outputs.allowed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    env:
+      BRANCH: factory/task-${{ github.event.issue.number }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH }}
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - name: Resolve PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "number=$(gh pr list --repo "$REPO" --head "$BRANCH" --json number --jq '.[0].number')" >> "$GITHUB_OUTPUT"
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Run /validate-tests for the task in PR #${{ steps.pr.outputs.number }}. Post your
+            findings as a PR comment whose LAST line is exactly `VERDICT: PASS` or `VERDICT: FAIL`.
+            If FAIL, add a line before it: `RETRY: tests` if the tests are inadequate, else `RETRY: build`.
+          claude_args: >-
+            --max-turns 10
+            --allowedTools "Read,Glob,Grep,Bash(make test),Bash(make coverage),Bash(gh pr comment:*),Bash(gh pr diff:*)"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Read verdict and advance
+        env:
+          GH_TOKEN: ${{ secrets.FACTORY_PUSH_TOKEN }}
+          PR: ${{ steps.pr.outputs.number }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          # Only comments by the Actions bot count; humans/agents elsewhere cannot forge a verdict.
+          last=$(gh api "repos/${REPO}/issues/${PR}/comments" --paginate \
+            --jq '[.[] | select(.user.login=="github-actions[bot]") | .body] | last')
+          verdict=$(tail -n1 <<< "$last" | tr -d '\r')
+          case "$verdict" in
+            "VERDICT: PASS") scripts/advance.sh "$ISSUE" validate done ;;
+            "VERDICT: FAIL")
+              if grep -qx 'RETRY: tests' <<< "$last"; then target=tests; else target=build; fi
+              scripts/advance.sh "$ISSUE" validate retry "$target" ;;
+            *) echo "No verdict found; escalating."
+               gh issue edit "$ISSUE" --repo "$REPO" --remove-label factory:stage:validate \
+                 --add-label factory:needs-human ;;
+          esac

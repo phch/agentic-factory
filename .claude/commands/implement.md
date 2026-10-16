@@ -7,7 +7,7 @@ Use the implementer subagent to implement the PRD at: $ARGUMENTS
 
 Steps:
 1. Read the PRD and CLAUDE.md.
-2. Write failing unit tests first, one per requirement / acceptance criterion.
+2. If failing tests for this work already exist (from the test-author stage), use them as-is and do not edit them; otherwise write failing unit tests first, one per requirement / acceptance criterion.
 3. Implement the minimum code to pass them.
 4. Run `make check` (lint, types, tests, coverage >= 90%) until green. Do not weaken or delete tests to get there.
 5. Summarize what changed and map each requirement to its test.

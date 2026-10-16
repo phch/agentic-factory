@@ -1,6 +1,8 @@
-# Replace @your-github-username. Enable "Require review from Code Owners" in branch protection.
-*                @your-github-username
-/.github/        @your-github-username
-/.claude/        @your-github-username
-/scripts/        @your-github-username
-/evals/          @your-github-username
+# Enable "Require review from Code Owners" in branch protection.
+*                @phch
+/.github/        @phch
+/.claude/        @phch
+/scripts/        @phch
+/evals/          @phch
+/web/            @phch
+/docs/design/    @phch
