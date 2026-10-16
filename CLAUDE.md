@@ -44,7 +44,7 @@ validates the graph in `src/tasks.py`). Each task moves by `factory:stage:<x>` l
 `done` (set by `merged.yml` after the PR merges; this unblocks dependents). Failed validation
 retries up to 2 times, then `factory:needs-human`. Tasks with dependencies start as
 `factory:blocked`. Every transition is commented on the task issue and the PRD issue.
-Workflows: `decompose.yml`, `pipeline.yml` + `stage.yml`, `validate.yml`, `merged.yml`.
+Workflows: `decompose.yml` (push trigger) -> `decompose-run.yml` (agent; claude-code-action does not support `push`), `pipeline.yml` + `stage.yml`, `validate.yml`, `merged.yml`.
 Setup and flow: `docs/setup.md`.
 
 ## Kill switch and budgets
