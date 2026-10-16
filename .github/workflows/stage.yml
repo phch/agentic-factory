@@ -74,7 +74,8 @@ jobs:
         uses: astral-sh/setup-uv@v5
       - if: inputs.needs_python
         run: uv sync --frozen
-      - uses: anthropics/claude-code-action@v1
+      - id: agent
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: true
@@ -90,6 +91,7 @@ jobs:
         env:
           STAGE: ${{ inputs.stage }}
           COMMIT_PATHS: ${{ inputs.commit_paths }}
+          EXEC_FILE: ${{ steps.agent.outputs.execution_file }}
         run: |
           # Adopt whatever the agent left (it may have switched branches or committed itself),
           # then commit remaining changes in this stage's allowed paths ourselves.
@@ -99,6 +101,7 @@ jobs:
           git diff --cached --quiet || git commit -m "factory: $STAGE for #${{ inputs.issue }}"
           if [[ "$(git rev-parse HEAD)" == "$START" ]]; then
             echo "Stage '$STAGE' produced no changes. Diagnostics:"; git status --short; git branch -a
+            jq '.[-1] | {subtype, num_turns, permission_denials: [.permission_denials[]?.tool_name], result}' "$EXEC_FILE" 2>&1 || true
             gh issue edit "${{ inputs.issue }}" --repo "$REPO" --remove-label "factory:stage:$STAGE" \
               --add-label factory:needs-human
             gh issue comment "${{ inputs.issue }}" --repo "$REPO" \

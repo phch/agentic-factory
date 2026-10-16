@@ -88,7 +88,7 @@ jobs:
           claude_args: >-
             --model ${{ vars.FACTORY_MODEL || 'claude-sonnet-5-5' }}
             --max-turns 20
-            --allowedTools "Read,Glob,Grep,Edit(src/**),Write(src/**),Edit(tests/**),Write(tests/**),Bash(make:*),Bash(git:*),Bash(gh run view:*)"
+            --allowedTools "Read,Glob,Grep,Edit(src/**),Edit(tests/**),Bash(make:*),Bash(git:*),Bash(gh run view:*)"
         env:
           GH_TOKEN: ${{ github.token }}
 
