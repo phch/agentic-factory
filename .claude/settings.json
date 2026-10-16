@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make test)",
+      "Bash(make check)",
+      "Bash(make coverage)",
+      "Bash(python3 -m unittest:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git status)"
+    ]
+  }
+}

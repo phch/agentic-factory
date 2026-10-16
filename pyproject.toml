@@ -1,0 +1,26 @@
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+extend-exclude = ["evals/cases"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+"evals/*" = ["S101", "S603", "S607"]
+"scripts/*" = ["S603", "S607"]
+
+[tool.mypy]
+strict = true
+mypy_path = "src"
+files = ["src", "evals"]
+exclude = ["evals/cases/"]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true

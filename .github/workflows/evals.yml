@@ -1,0 +1,32 @@
+name: Factory evals
+# Runs the held-out eval cases when agent prompts/definitions change, or on demand.
+# Costs real API money, so it is path-filtered and subject to the kill switch.
+on:
+  pull_request:
+    paths: [".claude/**", "evals/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    if: vars.FACTORY_PAUSED != 'true' && github.event.pull_request.head.repo.fork != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - run: npm install -g @anthropic-ai/claude-code
+      - run: make evals
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          EVAL_MAX_BUDGET_USD: "2"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: evals/results/
